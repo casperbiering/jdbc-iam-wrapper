@@ -58,7 +58,7 @@ publishing {
             from(components["java"])
             pom {
                 name.set(project.name)
-                description.set("")
+                description.set("Connect to JDBC Drivers with local AWS Profile via IAM RDS token")
                 url.set("https://github.com/casperbiering/jdbc-iam-wrapper")
                 licenses {
                     license {
