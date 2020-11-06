@@ -105,19 +105,6 @@ public class IamWrapper implements java.sql.Driver {
         Integer port = getPort(parsedUrl);
         String awsRegion = getAwsRegion(properties, host, awsProfile);
 
-        LOGGER.info(
-                "Generating RDS IAM auth token for: "
-                        + "AwsProfile="
-                        + awsProfile
-                        + ", AwsRegion="
-                        + awsRegion
-                        + ", Host="
-                        + host
-                        + ", Port="
-                        + port
-                        + ", User="
-                        + user);
-
         connectionProperties.put("user", user);
         connectionProperties.put("useSSL", "true");
         connectionProperties.put("requireSSL", "true");
@@ -132,14 +119,29 @@ public class IamWrapper implements java.sql.Driver {
                 connectionProperties.put("trustCertificateKeyStoreUrl", jksPath.toString());
                 connectionProperties.put("trustCertificateKeyStorePassword", "changeme");
             } else {
+                LOGGER.info("Unable to find the embedded trustCertificateKeyStore");
                 throw new SQLException("Unable to find the embedded trustCertificateKeyStore");
             }
         }
 
         try {
+            LOGGER.info(
+                    "Generating RDS IAM auth token for: "
+                            + "AwsProfile="
+                            + awsProfile
+                            + ", AwsRegion="
+                            + awsRegion
+                            + ", Host="
+                            + host
+                            + ", Port="
+                            + port
+                            + ", User="
+                            + user);
+
             String authToken = generateAuthToken(awsProfile, host, port, user, awsRegion);
             connectionProperties.put("password", authToken);
         } catch (Exception e) {
+            LOGGER.info("generateAuthToken exception: " + e.getMessage());
             throw new SQLException(e.getMessage(), e);
         }
 
