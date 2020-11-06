@@ -258,8 +258,21 @@ public class IamWrapper implements java.sql.Driver {
         return URI.create(substring);
     }
 
+    private Boolean firstConn = true;
+    private ClassLoader awsClassLoader;
+
     protected String generateAuthToken(
             String awsProfile, String host, Integer port, String user, String awsRegion) {
+
+        if (firstConn) {
+            firstConn = false;
+            awsClassLoader = Thread.currentThread().getContextClassLoader();
+        } else {
+            // This is a hack to workaround the following bug:
+            // https://github.com/aws/aws-sdk-java-v2/issues/2123
+            Thread.currentThread().setContextClassLoader(awsClassLoader);
+        }
+
         ProfileCredentialsProvider provider =
                 ProfileCredentialsProvider.builder().profileName(awsProfile).build();
 
