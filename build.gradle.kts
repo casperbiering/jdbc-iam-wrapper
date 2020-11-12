@@ -13,7 +13,7 @@ repositories {
 }
 
 dependencies {
-    implementation("software.amazon.awssdk:sts:2.15.21")
+    implementation("software.amazon.awssdk:sts:2.15.26")
     implementation("org.apache.logging.log4j:log4j-slf4j-impl:2.13.3")
 
     testImplementation("junit:junit:4.12")
