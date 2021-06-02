@@ -26,7 +26,7 @@ dependencies {
 group = "dk.biering"
 
 val release: String? by project
-val baseVersion = "0.1.2"
+val baseVersion = "0.1.3"
 
 version = if (release != null && release!!.toBoolean()) {
     baseVersion

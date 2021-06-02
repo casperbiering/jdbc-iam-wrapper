@@ -109,6 +109,10 @@ public class IamWrapper implements java.sql.Driver {
         connectionProperties.put("useSSL", "true");
         connectionProperties.put("requireSSL", "true");
 
+        if (!properties.containsKey("enabledTLSProtocols")) {
+            connectionProperties.put("enabledTLSProtocols", "TLSv1.2,TLSv1.3");
+        }
+
         if (!properties.containsKey("verifyServerCertificate")) {
             connectionProperties.put("verifyServerCertificate", "true");
         }
