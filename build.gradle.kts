@@ -2,10 +2,10 @@ plugins {
     java
     `maven-publish`
     signing
-    id("com.diffplug.spotless") version "5.7.0"
-    id("com.github.johnrengelman.shadow") version "6.1.0"
+    id("com.diffplug.spotless") version "6.20.0"
+    id("com.github.johnrengelman.shadow") version "7.1.2"
     id("de.marcphilipp.nexus-publish") version "0.4.0"
-    id("io.codearte.nexus-staging") version "0.22.0"
+    id("io.codearte.nexus-staging") version "0.30.0"
 }
 
 repositories {
@@ -13,20 +13,22 @@ repositories {
 }
 
 dependencies {
-    implementation("software.amazon.awssdk:sts:2.15.26")
-    implementation("org.apache.logging.log4j:log4j-slf4j-impl:2.13.3")
+    implementation("software.amazon.awssdk:sso:2.20.135")
+    implementation("software.amazon.awssdk:ssooidc:2.20.135")
+    implementation("software.amazon.awssdk:sts:2.20.135")
+    implementation("org.apache.logging.log4j:log4j-slf4j-impl:2.20.0")
 
     testImplementation("junit:junit:4.12")
 
     // implementation("org.mariadb.jdbc:mariadb-java-client:2.7.0")
-    implementation("mysql:mysql-connector-java:8.0.22")
+    implementation("mysql:mysql-connector-java:8.0.33")
     // implementation("mysql:mysql-connector-java:5.1.49")
 }
 
 group = "dk.biering"
 
 val release: String? by project
-val baseVersion = "0.1.3"
+val baseVersion = "0.1.4"
 
 version = if (release != null && release!!.toBoolean()) {
     baseVersion
