@@ -23,12 +23,13 @@ dependencies {
     // implementation("org.mariadb.jdbc:mariadb-java-client:2.7.0")
     implementation("mysql:mysql-connector-java:8.0.33")
     // implementation("mysql:mysql-connector-java:5.1.49")
+    implementation("org.postgresql:postgresql:42.6.0")
 }
 
 group = "dk.biering"
 
 val release: String? by project
-val baseVersion = "0.1.4"
+val baseVersion = "0.1.5"
 
 version = if (release != null && release!!.toBoolean()) {
     baseVersion
