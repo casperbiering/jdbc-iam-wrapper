@@ -32,8 +32,10 @@ public class IamWrapper implements java.sql.Driver {
     private static final Logger LOGGER = Logger.getLogger(IamWrapper.class.getName());
 
     private static final Integer DEFAULT_PORT_MYSQL = 3306;
+    private static final Integer DEFAULT_PORT_POSTGRESQL = 5432;
     private static final String DEFAULT_DRIVER_MYSQL = "com.mysql.cj.jdbc.Driver";
     private static final String DEFAULT_DRIVER_MARIADB = "org.mariadb.jdbc.Driver";
+    private static final String DEFAULT_DRIVER_POSTGRESQL = "org.postgresql.Driver";
 
     private static final String JDBC_URL_PREFIX = "jdbc:";
     private static final String JDBC_IAM_PREFIX = "iam:";
@@ -172,6 +174,8 @@ public class IamWrapper implements java.sql.Driver {
                 driverToResolve = DEFAULT_DRIVER_MYSQL;
             } else if (parsedUrl.getScheme().equals("mariadb")) {
                 driverToResolve = DEFAULT_DRIVER_MARIADB;
+            } else if (parsedUrl.getScheme().equals("postgresql")) {
+                driverToResolve = DEFAULT_DRIVER_POSTGRESQL;
             } else {
                 throw new SQLException(
                         "Driver couldn't be automatically determined. Please define `"
@@ -248,6 +252,8 @@ public class IamWrapper implements java.sql.Driver {
             return DEFAULT_PORT_MYSQL;
         } else if (parsedUrl.getScheme().equals("mariadb")) {
             return DEFAULT_PORT_MYSQL;
+        } else if (parsedUrl.getScheme().equals("postgresql")) {
+            return DEFAULT_PORT_POSTGRESQL;
         } else {
             throw new SQLException(
                     "No database port specified. IAM Auth requires that either a default port be pre-configured or a port is specified in the JDBC URL.");
@@ -302,7 +308,7 @@ public class IamWrapper implements java.sql.Driver {
         Map<String, String> merged = new HashMap<>();
         properties.stringPropertyNames().forEach(sp -> merged.put(sp, properties.getProperty(sp)));
         // URI properties take precedence over connection properties.
-        // This is in-line with the behavior of JDBC drivers like postgres
+        // This is in-line with the behavior of JDBC drivers like postgresql
         // It also makes sense, since we use URI properties are used in certain situations to
         // resolve the driver, before connection properties are available
         merged.putAll(uriProperties);
