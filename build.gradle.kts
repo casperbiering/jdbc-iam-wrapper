@@ -29,7 +29,7 @@ dependencies {
 group = "dk.biering"
 
 val release: String? by project
-val baseVersion = "0.1.6"
+val baseVersion = "0.1.7" // REMEMBER TO UPDATE IN IamWrapper.java
 
 version = if (release != null && release!!.toBoolean()) {
     baseVersion

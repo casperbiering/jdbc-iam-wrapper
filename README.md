@@ -4,7 +4,7 @@
 * Short connection url with username and profile
 * Translates AWS Profile written in the password field into the AWS IAM RDS token
 * Based on AWS SDK v2 to better support local profiles
-* Forces SSL connection and embeds the [rds-ca-2019-root.pem](https://s3.amazonaws.com/rds-downloads/rds-ca-2019-root.pem) as trustCertificateKeyStore.
+* Forces SSL connection and embeds the [global-bundle.pem](https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem) as trustCertificateKeyStore (cached from 2024-02-28).
 
 ## Setup
 
@@ -33,4 +33,4 @@ awsRegion
 
 ## Attributions
 
-This is heavily based on [magJ/iam-jdbc-driver](https://github.com/magJ/iam-jdbc-driver) and a AWS SDK v2 [code example](https://github.com/aws/aws-sdk-java-v2/issues/1157#issuecomment-561677354). 
+This is heavily based on [magJ/iam-jdbc-driver](https://github.com/magJ/iam-jdbc-driver) and a AWS SDK v2 [code example](https://github.com/aws/aws-sdk-java-v2/issues/1157#issuecomment-561677354).

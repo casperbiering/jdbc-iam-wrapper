@@ -52,7 +52,7 @@ public class IamWrapper implements java.sql.Driver {
     //
     static {
         try {
-            LOGGER.info("Registering IAM wrapper");
+            LOGGER.info("Registering IAM wrapper 0.1.7");
             java.sql.DriverManager.registerDriver(new IamWrapper());
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Error registering IAM wrapper", e);
@@ -120,7 +120,7 @@ public class IamWrapper implements java.sql.Driver {
         }
 
         if (!properties.containsKey("trustCertificateKeyStoreUrl")) {
-            URL jksPath = IamWrapper.class.getClassLoader().getResource("rds-ca-2019-root.pem.jks");
+            URL jksPath = IamWrapper.class.getClassLoader().getResource("aws-rds-ca-global-bundle-20240228.jks");
             if (jksPath != null) {
                 connectionProperties.put("trustCertificateKeyStoreUrl", jksPath.toString());
                 connectionProperties.put("trustCertificateKeyStorePassword", "changeme");
