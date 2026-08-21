@@ -30,7 +30,7 @@ dependencies {
 group = "dk.biering"
 
 val release = project.findProperty("release") as String?
-val baseVersion = "0.2.0" // REMEMBER TO UPDATE IN IamWrapper.java
+val baseVersion = "0.2.1" // REMEMBER TO UPDATE IN IamWrapper.java
 
 version =
     if (release != null && release.toBoolean()) {
@@ -40,10 +40,14 @@ version =
     }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_25
-    targetCompatibility = JavaVersion.VERSION_25
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
     withJavadocJar()
     withSourcesJar()
+}
+
+tasks.withType<JavaCompile>().configureEach {
+    options.release.set(8)
 }
 
 spotless {

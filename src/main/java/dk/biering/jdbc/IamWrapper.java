@@ -5,8 +5,10 @@ import static software.amazon.awssdk.http.auth.aws.signer.AwsV4HttpSigner.EXPIRA
 import static software.amazon.awssdk.http.auth.aws.signer.AwsV4HttpSigner.REGION_NAME;
 import static software.amazon.awssdk.http.auth.aws.signer.AwsV4HttpSigner.SERVICE_SIGNING_NAME;
 
+import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URI;
+import java.net.URL;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
@@ -14,13 +16,16 @@ import java.time.Duration;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import software.amazon.awssdk.auth.credentials.AwsCredentials;
 import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.http.SdkHttpMethod;
 import software.amazon.awssdk.http.SdkHttpRequest;
 import software.amazon.awssdk.http.auth.aws.signer.AwsV4FamilyHttpSigner.AuthLocation;
 import software.amazon.awssdk.http.auth.aws.signer.AwsV4HttpSigner;
+import software.amazon.awssdk.http.auth.spi.signer.SignedRequest;
 import software.amazon.awssdk.regions.providers.DefaultAwsRegionProviderChain;
 
 public class IamWrapper implements java.sql.Driver {
@@ -49,7 +54,7 @@ public class IamWrapper implements java.sql.Driver {
     //
     static {
         try {
-            LOGGER.info("Registering IAM wrapper 0.2.0");
+            LOGGER.info("Registering IAM wrapper 0.2.1");
             java.sql.DriverManager.registerDriver(new IamWrapper());
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Error registering IAM wrapper", e);
@@ -77,32 +82,32 @@ public class IamWrapper implements java.sql.Driver {
         }
 
         url = stripIamPrefixFromUrl(url);
-        var userInfo = extractUserInfoFromUrl(url);
+        String userInfo = extractUserInfoFromUrl(url);
         url = removeUserInfoFromUrl(url);
 
-        var parsedUrl = parseJdbcUrl(url);
+        URI parsedUrl = parseJdbcUrl(url);
 
-        var properties =
+        Map<String, String> properties =
                 mergeProperties(
                         connectionProperties, parseQueryString(parsedUrl), parseUserInfo(userInfo));
 
         resolveDelegateDriver(url, properties);
 
-        var user = properties.get("user");
+        String user = properties.get("user");
         if (user == null) {
             throw new SQLException(
                     "User couldn't be automatically determined. Please define `user` in query string or property.");
         }
 
-        var awsProfile = properties.get("password");
+        String awsProfile = properties.get("password");
         if (awsProfile == null) {
             throw new SQLException(
                     "Password/AWS Profile isn't specified. Please define the AWS Profile as `password` in query string or property.");
         }
 
-        var host = getHost(parsedUrl);
-        var port = getPort(parsedUrl);
-        var awsRegion = getAwsRegion(properties, host, awsProfile);
+        String host = getHost(parsedUrl);
+        int port = getPort(parsedUrl);
+        String awsRegion = getAwsRegion(properties, host, awsProfile);
 
         connectionProperties.put("user", user);
         connectionProperties.put("useSSL", "true");
@@ -117,7 +122,7 @@ public class IamWrapper implements java.sql.Driver {
         }
 
         if (!properties.containsKey("trustCertificateKeyStoreUrl")) {
-            var jksPath =
+            URL jksPath =
                     IamWrapper.class
                             .getClassLoader()
                             .getResource("aws-rds-ca-global-bundle-20240228.jks");
@@ -132,17 +137,18 @@ public class IamWrapper implements java.sql.Driver {
 
         try {
             LOGGER.info(
-                    "Generating RDS IAM auth token for: AwsProfile=%s, AwsRegion=%s, Host=%s, Port=%d, User=%s"
-                            .formatted(awsProfile, awsRegion, host, port, user));
+                    String.format(
+                            "Generating RDS IAM auth token for: AwsProfile=%s, AwsRegion=%s, Host=%s, Port=%d, User=%s",
+                            awsProfile, awsRegion, host, port, user));
 
-            var authToken = generateAuthToken(awsProfile, host, port, user, awsRegion);
+            String authToken = generateAuthToken(awsProfile, host, port, user, awsRegion);
             connectionProperties.put("password", authToken);
         } catch (Exception e) {
             LOGGER.info("generateAuthToken exception: " + e.getMessage());
             throw new SQLException(e.getMessage(), e);
         }
 
-        var loggingProperties = (Properties) connectionProperties.clone();
+        Properties loggingProperties = (Properties) connectionProperties.clone();
         loggingProperties.put("password", "hidden-from-log");
 
         LOGGER.info("Connecting with url: " + url + " and properties: " + loggingProperties);
@@ -161,16 +167,22 @@ public class IamWrapper implements java.sql.Driver {
         if (driverToResolve == null) {
             URI parsedUrl = parseJdbcUrl(delegatedUrl);
 
-            driverToResolve =
-                    switch (parsedUrl.getScheme()) {
-                        case "mysql" -> DEFAULT_DRIVER_MYSQL;
-                        case "mariadb" -> DEFAULT_DRIVER_MARIADB;
-                        case "postgresql" -> DEFAULT_DRIVER_POSTGRESQL;
-                        default ->
-                                throw new SQLException(
-                                        "Driver couldn't be automatically determined. Please define `%s` in query string or property."
-                                                .formatted(LOAD_JDBC_DRIVER_CLASS_PROPERTY));
-                    };
+            switch (parsedUrl.getScheme()) {
+                case "mysql":
+                    driverToResolve = DEFAULT_DRIVER_MYSQL;
+                    break;
+                case "mariadb":
+                    driverToResolve = DEFAULT_DRIVER_MARIADB;
+                    break;
+                case "postgresql":
+                    driverToResolve = DEFAULT_DRIVER_POSTGRESQL;
+                    break;
+                default:
+                    throw new SQLException(
+                            String.format(
+                                    "Driver couldn't be automatically determined. Please define `%s` in query string or property.",
+                                    LOAD_JDBC_DRIVER_CLASS_PROPERTY));
+            }
         }
 
         try {
@@ -188,7 +200,7 @@ public class IamWrapper implements java.sql.Driver {
                     IllegalAccessException,
                     InvocationTargetException,
                     InstantiationException {
-        var driverClass = (Class<Driver>) Class.forName(driverClassName);
+        Class<Driver> driverClass = (Class<Driver>) Class.forName(driverClassName);
         return driverClass.getDeclaredConstructor().newInstance();
     }
 
@@ -210,7 +222,7 @@ public class IamWrapper implements java.sql.Driver {
             return properties.get(AWS_REGION_PROPERTY);
         }
 
-        var matcher = Pattern.compile(AWS_REGION_FROM_HOST_REGEX).matcher(host);
+        Matcher matcher = Pattern.compile(AWS_REGION_FROM_HOST_REGEX).matcher(host);
         if (matcher.find()) {
             return matcher.group(1);
         }
@@ -224,8 +236,9 @@ public class IamWrapper implements java.sql.Driver {
         } catch (SdkClientException e) {
             throw new SQLException(
                     "AWS Region couldn't be automatically determined. "
-                            + "Please define `%s` in query string or property, or set default region in the AWS Profile."
-                                    .formatted(AWS_REGION_PROPERTY),
+                            + String.format(
+                                    "Please define `%s` in query string or property, or set default region in the AWS Profile.",
+                                    AWS_REGION_PROPERTY),
                     e);
         }
     }
@@ -265,12 +278,11 @@ public class IamWrapper implements java.sql.Driver {
     protected String generateAuthToken(
             String awsProfile, String host, Integer port, String user, String awsRegion) {
 
-        var provider = ProfileCredentialsProvider.builder().profileName(awsProfile).build();
+        try (ProfileCredentialsProvider provider =
+                ProfileCredentialsProvider.builder().profileName(awsProfile).build()) {
+            AwsCredentials credentials = provider.resolveCredentials();
 
-        try (provider) {
-            var credentials = provider.resolveCredentials();
-
-            var request =
+            SdkHttpRequest request =
                     SdkHttpRequest.builder()
                             .encodedPath("/")
                             .host(host)
@@ -282,7 +294,7 @@ public class IamWrapper implements java.sql.Driver {
                             .appendRawQueryParameter("DBUser", user)
                             .build();
 
-            var signedRequest =
+            SignedRequest signedRequest =
                     AwsV4HttpSigner.create()
                             .sign(
                                     r -> {
@@ -295,7 +307,7 @@ public class IamWrapper implements java.sql.Driver {
                                         r.putProperty(EXPIRATION_DURATION, TOKEN_LIFETIME);
                                     });
 
-            var fullUrl = signedRequest.request().getUri().toString();
+            String fullUrl = signedRequest.request().getUri().toString();
 
             return fullUrl.substring(7); // remove prefix http://
         }
@@ -305,7 +317,7 @@ public class IamWrapper implements java.sql.Driver {
             Properties properties,
             Map<String, String> uriProperties,
             Map<String, String> userInfoProperties) {
-        var merged = new HashMap<String, String>();
+        Map<String, String> merged = new HashMap<String, String>();
         properties.stringPropertyNames().forEach(sp -> merged.put(sp, properties.getProperty(sp)));
         // URI properties take precedence over connection properties.
         // This is in-line with the behavior of JDBC drivers like PostgreSQL
@@ -321,10 +333,10 @@ public class IamWrapper implements java.sql.Driver {
         if (uri == null || uri.getQuery() == null) {
             return Collections.emptyMap();
         }
-        var queryParams = new LinkedHashMap<String, String>();
-        var query = uri.getQuery();
-        var pairs = query.split("&");
-        for (var pair : pairs) {
+        Map<String, String> queryParams = new LinkedHashMap<String, String>();
+        String query = uri.getQuery();
+        String[] pairs = query.split("&");
+        for (String pair : pairs) {
             int idx = pair.indexOf("=");
             if (idx < 0) {
                 continue;
@@ -339,12 +351,12 @@ public class IamWrapper implements java.sql.Driver {
             return Collections.emptyMap();
         }
 
-        var parts = userInfo.split(":");
+        String[] parts = userInfo.split(":");
         if (parts.length != 2) {
             return Collections.emptyMap();
         }
 
-        var properties = new LinkedHashMap<String, String>();
+        Map<String, String> properties = new LinkedHashMap<String, String>();
         properties.put("user", parts[0]);
         properties.put("password", parts[1]);
 
@@ -362,7 +374,11 @@ public class IamWrapper implements java.sql.Driver {
      * {@code +}, and would require encoding to be correctly parsed.
      */
     private static String urlDecode(String value) {
-        return URLDecoder.decode(value.replace("+", "%2B"), StandardCharsets.UTF_8);
+        try {
+            return URLDecoder.decode(value.replace("+", "%2B"), StandardCharsets.UTF_8.name());
+        } catch (UnsupportedEncodingException e) {
+            throw new IllegalStateException("UTF-8 is required to be supported by every JVM", e);
+        }
     }
 
     @Override
@@ -406,12 +422,12 @@ public class IamWrapper implements java.sql.Driver {
         assertUrlNotNull(url);
 
         url = stripIamPrefixFromUrl(url);
-        var userInfo = extractUserInfoFromUrl(url);
+        String userInfo = extractUserInfoFromUrl(url);
         url = removeUserInfoFromUrl(url);
 
-        var parsedUrl = parseJdbcUrl(url);
+        URI parsedUrl = parseJdbcUrl(url);
 
-        var properties =
+        Map<String, String> properties =
                 mergeProperties(
                         connectionProperties, parseQueryString(parsedUrl), parseUserInfo(userInfo));
 
@@ -437,7 +453,8 @@ public class IamWrapper implements java.sql.Driver {
 
     private void logDelegateNotInitialised(String method) {
         LOGGER.warning(
-                "Method %s called, but delegate driver not initialised, returning bogus value"
-                        .formatted(method));
+                String.format(
+                        "Method %s called, but delegate driver not initialised, returning bogus value",
+                        method));
     }
 }
