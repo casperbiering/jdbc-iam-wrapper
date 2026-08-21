@@ -29,27 +29,26 @@ public class ConnectionTests extends TestCase {
         info.put("password", JDBC_PASSWORD);
 
         System.out.println("Connecting to a selected database...");
-        var _ =
-                DriverManager.getConnection(
-                        "jdbc:iam:mysql://" + JDBC_HOST + "/information_schema?hello=yes", info);
+        DriverManager.getConnection(
+                "jdbc:iam:mysql://" + JDBC_HOST + "/information_schema?hello=yes", info);
         System.out.println("Connected successfully to database");
     }
 
     public void testConnectWrapper2() throws SQLException {
         System.out.println("Connecting to a selected database...");
-        var _ =
-                DriverManager.getConnection(
-                        "jdbc:iam:mysql://%s/information_schema?user=%s&password=%s&hello=yes"
-                                .formatted(JDBC_HOST, JDBC_USER, JDBC_PASSWORD));
+        DriverManager.getConnection(
+                String.format(
+                        "jdbc:iam:mysql://%s/information_schema?user=%s&password=%s&hello=yes",
+                        JDBC_HOST, JDBC_USER, JDBC_PASSWORD));
         System.out.println("Connected successfully to database");
     }
 
     public void testConnectWrapper3() throws SQLException {
         System.out.println("Connecting to a selected database...");
-        var _ =
-                DriverManager.getConnection(
-                        "jdbc:iam:mysql://%s:%s@%s/information_schema?hello=yes"
-                                .formatted(JDBC_USER, JDBC_PASSWORD, JDBC_HOST));
+        DriverManager.getConnection(
+                String.format(
+                        "jdbc:iam:mysql://%s:%s@%s/information_schema?hello=yes",
+                        JDBC_USER, JDBC_PASSWORD, JDBC_HOST));
         System.out.println("Connected successfully to database");
     }
 }
