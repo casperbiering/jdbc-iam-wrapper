@@ -1,11 +1,12 @@
+import java.time.Duration
+
 plugins {
     java
     `maven-publish`
     signing
-    id("com.diffplug.spotless") version "6.20.0"
-    id("com.github.johnrengelman.shadow") version "7.1.2"
-    id("de.marcphilipp.nexus-publish") version "0.4.0"
-    id("io.codearte.nexus-staging") version "0.30.0"
+    alias(libs.plugins.spotless)
+    alias(libs.plugins.shadow)
+    alias(libs.plugins.nexus.publish)
 }
 
 repositories {
@@ -13,33 +14,34 @@ repositories {
 }
 
 dependencies {
-    implementation("software.amazon.awssdk:sso:2.20.135")
-    implementation("software.amazon.awssdk:ssooidc:2.20.135")
-    implementation("software.amazon.awssdk:sts:2.20.135")
-    implementation("org.apache.logging.log4j:log4j-slf4j-impl:2.20.0")
+    implementation(libs.awssdk.sso)
+    implementation(libs.awssdk.ssooidc)
+    implementation(libs.awssdk.sts)
+    implementation(libs.log4j.slf4j.impl)
 
-    testImplementation("junit:junit:4.12")
+    testImplementation(libs.junit)
 
-    // implementation("org.mariadb.jdbc:mariadb-java-client:2.7.0")
-    implementation("mysql:mysql-connector-java:8.0.33")
+    // implementation(libs.mariadb.client)
+    implementation(libs.mysql.client)
     // implementation("mysql:mysql-connector-java:5.1.49")
-    implementation("org.postgresql:postgresql:42.6.0")
+    implementation(libs.postgresql.client)
 }
 
 group = "dk.biering"
 
-val release: String? by project
-val baseVersion = "0.1.7" // REMEMBER TO UPDATE IN IamWrapper.java
+val release = project.findProperty("release") as String?
+val baseVersion = "0.2.0" // REMEMBER TO UPDATE IN IamWrapper.java
 
-version = if (release != null && release!!.toBoolean()) {
-    baseVersion
-} else {
-    "$baseVersion-SNAPSHOT"
-}
+version =
+    if (release != null && release.toBoolean()) {
+        baseVersion
+    } else {
+        "$baseVersion-SNAPSHOT"
+    }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
     withJavadocJar()
     withSourcesJar()
 }
@@ -84,30 +86,24 @@ publishing {
     }
 }
 
+val mavenUploadUser = project.findProperty("mavenUploadUser") as String?
+val mavenUploadPassword = project.findProperty("mavenUploadPassword") as String?
+
 nexusPublishing {
     repositories {
-        sonatype()
+        sonatype {
+            username.set(mavenUploadUser)
+            password.set(mavenUploadPassword)
+        }
     }
-}
-
-val mavenUploadUser: String? by project
-val mavenUploadPassword: String? by project
-nexusStaging {
-    username = mavenUploadUser
-    password = mavenUploadPassword
     // Try for 2 minutes
-    numberOfRetries = 30
-    delayBetweenRetriesInMillis = 4000
-}
-
-tasks.closeRepository.configure {
-    mustRunAfter(tasks.publish)
+    clientTimeout.set(Duration.ofMinutes(2))
 }
 
 signing {
-    val signingKeyId: String? by project
-    val signingKey: String? by project
-    val signingPassword: String? by project
+    val signingKeyId = project.findProperty("signingKeyId") as String?
+    val signingKey = project.findProperty("signingKey") as String?
+    val signingPassword = project.findProperty("signingPassword") as String?
     if (signingKey != null && signingPassword != null) {
         useInMemoryPgpKeys(signingKeyId, signingKey, signingPassword)
         sign(publishing.publications["mavenJava"])
@@ -115,7 +111,5 @@ signing {
 }
 
 tasks.javadoc {
-    if (JavaVersion.current().isJava9Compatible) {
-        (options as StandardJavadocDocletOptions).addBooleanOption("html5", true)
-    }
+    (options as StandardJavadocDocletOptions).addBooleanOption("html5", true)
 }

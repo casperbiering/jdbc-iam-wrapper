@@ -1,0 +1,25 @@
+[versions]
+awssdk = "2.53.0"
+log4j = "2.26.1"
+junit = "4.13.2"
+mysql = "9.7.0"
+postgresql = "42.7.13"
+mariadb = "3.5.10"
+spotless = "8.9.0"
+shadow = "9.6.1"
+nexus-publish = "2.0.0"
+
+[plugins]
+spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
+shadow = { id = "com.gradleup.shadow", version.ref = "shadow" }
+nexus-publish = { id = "io.github.gradle-nexus.publish-plugin", version.ref = "nexus-publish" }
+
+[libraries]
+awssdk-sso = { module = "software.amazon.awssdk:sso", version.ref = "awssdk" }
+awssdk-ssooidc = { module = "software.amazon.awssdk:ssooidc", version.ref = "awssdk" }
+awssdk-sts = { module = "software.amazon.awssdk:sts", version.ref = "awssdk" }
+log4j-slf4j-impl = { module = "org.apache.logging.log4j:log4j-slf4j-impl", version.ref = "log4j" }
+junit = { module = "junit:junit", version.ref = "junit" }
+mysql-client = { module = "com.mysql:mysql-connector-j", version.ref = "mysql" }
+postgresql-client = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
+mariadb-client = { module = "org.mariadb.jdbc:mariadb-java-client", version.ref = "mariadb" }

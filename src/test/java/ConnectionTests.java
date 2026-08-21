@@ -1,6 +1,7 @@
-import java.sql.*;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.util.Properties;
-import junit.framework.*;
+import junit.framework.TestCase;
 
 public class ConnectionTests extends TestCase {
     static final String JDBC_DRIVER = "dk.biering.jdbc.IamWrapper";
@@ -13,10 +14,10 @@ public class ConnectionTests extends TestCase {
         super.setUp();
 
         try {
-            // The newInstance() call is a work around for some
+            // The newInstance() call is a workaround for some
             // broken Java implementations
 
-            Class.forName(JDBC_DRIVER).newInstance();
+            Class.forName(JDBC_DRIVER).getConstructor().newInstance();
         } catch (Exception ex) {
             // handle the error
         }
@@ -28,7 +29,7 @@ public class ConnectionTests extends TestCase {
         info.put("password", JDBC_PASSWORD);
 
         System.out.println("Connecting to a selected database...");
-        Connection conn =
+        var _ =
                 DriverManager.getConnection(
                         "jdbc:iam:mysql://" + JDBC_HOST + "/information_schema?hello=yes", info);
         System.out.println("Connected successfully to database");
@@ -36,29 +37,19 @@ public class ConnectionTests extends TestCase {
 
     public void testConnectWrapper2() throws SQLException {
         System.out.println("Connecting to a selected database...");
-        Connection conn =
+        var _ =
                 DriverManager.getConnection(
-                        "jdbc:iam:mysql://"
-                                + JDBC_HOST
-                                + "/information_schema?user="
-                                + JDBC_USER
-                                + "&password="
-                                + JDBC_PASSWORD
-                                + "&hello=yes");
+                        "jdbc:iam:mysql://%s/information_schema?user=%s&password=%s&hello=yes"
+                                .formatted(JDBC_HOST, JDBC_USER, JDBC_PASSWORD));
         System.out.println("Connected successfully to database");
     }
 
     public void testConnectWrapper3() throws SQLException {
         System.out.println("Connecting to a selected database...");
-        Connection conn =
+        var _ =
                 DriverManager.getConnection(
-                        "jdbc:iam:mysql://"
-                                + JDBC_USER
-                                + ":"
-                                + JDBC_PASSWORD
-                                + "@"
-                                + JDBC_HOST
-                                + "/information_schema?hello=yes");
+                        "jdbc:iam:mysql://%s:%s@%s/information_schema?hello=yes"
+                                .formatted(JDBC_USER, JDBC_PASSWORD, JDBC_HOST));
         System.out.println("Connected successfully to database");
     }
 }
